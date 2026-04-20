@@ -1,1 +1,171 @@
 #write here
+##Loading Packages
+library(lavaan)
+library(lme4)
+library(tidyverse)
+library(psych)
+library(GPArotation)
+library(car)
+
+
+
+## Part B
+## Checking fit and loadings for all variables.
+
+
+##Looking at the data
+summary(locus)
+
+#Fixing the reverse coding (loc4 + cope3)
+
+locus <- locus |>
+  mutate(
+    loc4 = 6 - loc4,
+    cope3 = 6 - cope3
+  )
+
+
+##PCA (may be unnecessary)
+##Variance 
+principal(locus, nfactors = 17, rotate = "none")
+##Kaiser - keep 5
+principal(locus, nfactors = 17, rotate = "none")$values
+##Scree - keep 4 or 5
+scree(locus, factors = FALSE)
+##MAP - keep 3
+VSS(locus, n = ncol(locus), rotate = "none", fm = "pc", plot = FALSE)
+##Parallel Analysis - keep 3 
+fa.parallel(locus, fa = "pc", n.iter = 500)
+
+
+#Checking for skew (looks fineeeee)
+multi.hist(locus, global = FALSE)
+describe(locus)
+
+
+loc_mod <- "
+loc =~ loc1 + loc2 + loc3 + loc4 + loc5 + loc6
+loc3 ~~ loc4"
+loc_mod_est <- cfa(loc_mod, missing = "ML" ,data = locus)
+fitmeasures(loc_mod_est)[c("rmsea", "srmr", "tli", "cfi")]
+parameterestimates(loc_mod_est)
+##Modification Indices (fine)
+modindices(loc_mod_est, sort = TRUE)
+
+cope_mod <-"
+cope =~ cope1 + cope2 + cope3 + cope4 + cope5 + cope6 + cope7 + cope8
+cope4 ~~ cope7"
+cope_mod_est <- cfa(cope_mod, missing = "ML" ,data = locus)
+fitmeasures(cope_mod_est)[c("rmsea", "srmr", "tli", "cfi")]
+parameterestimates(cope_mod_est)
+##Modification Indices (4 and 7)
+modindices(cope_mod_est, sort = TRUE)
+
+anx_mod <-"
+anx =~ anx1 + anx2 + anx3 + anx4
+anx3 ~~ anx4"
+anx_mod_est <- cfa(anx_mod, missing = "ML" ,data = locus)
+fitmeasures(anx_mod_est)[c("rmsea", "srmr", "tli", "cfi")]
+parameterestimates(anx_mod_est)
+##Modification Indices (3 and 4)
+modindices(anx_mod_est, sort = TRUE)
+
+dep_mod <-"
+dep =~ dep1 + dep2 + dep3 + dep4
+dep1 ~~ dep2"
+dep_mod_est <- cfa(dep_mod, missing = "ML" ,data = locus)
+fitmeasures(dep_mod_est)[c("rmsea", "srmr", "tli", "cfi")]
+parameterestimates(dep_mod_est)
+##Modification Indices (1 and 2)
+modindices(dep_mod_est, sort = TRUE)
+
+
+
+
+##Full SEM
+
+full_mod <-"
+loc =~ loc1 + loc2 + loc3 + loc4 + loc5 + loc6
+cope =~ cope1 + cope2 + cope3 + cope4 + cope5 + cope6 + cope7 + cope8
+cope4 ~~ cope7
+anx =~ anx1 + anx2 + anx3 + anx4
+anx3 ~~ anx4
+dep =~ dep1 + dep2 + dep3 + dep4
+dep1 ~~ dep2
+INT =~ anx + dep
+
+cope ~ a*loc
+INT ~ b*cope
+INT ~ c*loc
+
+ind1 := a*b
+total := (a*b)
+
+anx ~~ dep
+INT =~ d1*anx + d2*dep"
+
+## Meeting with Joe: REMOVE INT, Do we need MEDIATION? (the a* and b* stuff)
+
+
+##Running the SEM
+full_mod_sem <- sem(full_mod, std.lv = TRUE, se = "bootstrap", missing = "ML", data = locus)
+
+##Checking for corrections (Problem with INT ~ anx + dep)
+parameterestimates(full_mod_sem)
+summary(full_mod_sem, ci = TRUE)
+semPlot::semPaths(full_mod_sem)
+fitmeasures(full_mod_sem)[c("rmsea", "srmr", "tli", "cfi")]
+
+
+
+
+
+full_mod2 <-"
+loc =~ loc1 + loc2 + loc3 + loc4 + loc5 + loc6
+cope =~ cope1 + cope2 + cope3 + cope4 + cope5 + cope6 + cope7 + cope8
+cope4 ~~ cope7
+anx =~ anx1 + anx2 + anx3 + anx4
+anx3 ~~ anx4
+dep =~ dep1 + dep2 + dep3 + dep4
+dep1 ~~ dep2
+
+anx ~~ dep"
+
+full_mod2_sem <- sem(full_mod2, std.lv = TRUE, se = "bootstrap", missing = "ML", data = locus)
+
+summary(full_mod2_sem, ci = TRUE)
+semPlot::semPaths(full_mod2_sem)
+
+
+
+
+C_mod <-"
+loc =~ loc1 + loc2 + loc3 + loc4 + loc5 + loc6
+cope =~ cope1 + cope2 + cope3 + cope4 + cope5 + cope6 + cope7 + cope8
+cope4 ~~ cope7
+anx =~ anx1 + anx2 + anx3 + anx4
+anx3 ~~ anx4
+dep =~ dep1 + dep2 + dep3 + dep4
+dep1 ~~ dep2
+
+cope ~ a*loc
+anx ~ b1*cope + c1*loc
+dep ~ b2*cope + c2*loc
+
+anx ~~ dep
+
+ind_anx := a*b1
+ind_dep := a*b2
+
+total_anx := ind_anx + c1
+total_dep := ind_dep + c2"
+
+C_mod_sem <- sem(C_mod, data = locus, missing = "ML",std.lv = TRUE, se = "bootstrap")
+
+parameterestimates(C_mod_sem)
+summary(C_mod_sem, ci = TRUE)
+semPlot::semPaths(C_mod_sem)
+fitmeasures(C_mod_sem)[c("rmsea", "srmr", "tli", "cfi")]
+
+
+#######################################Should be done with code. 
