@@ -170,6 +170,9 @@ library(lavaan)
 library(psych)
 library(semPlot)
 
+#ensure reproducibility
+set.seed(9475638)
+
 # check data
 summary(locus)
 describe(locus)
