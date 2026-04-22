@@ -167,7 +167,6 @@ lattice::qqmath(ranef(m_final, condVar = TRUE))
 #Part B
 # load packages
 library(lavaan)
-library(tidyverse)
 library(psych)
 library(semPlot)
 
@@ -175,19 +174,16 @@ library(semPlot)
 summary(locus)
 describe(locus)
 
-# Check distributions before reverse coding
-multi.hist(locus[, -1], global = FALSE)  # exclude ID column
+# check distributions
+multi.hist(locus[, -1], global = FALSE)
 
-# Reverse score negatively worded items:
-# loc4: "It is just luck that decides what happens in my life"
-# cope3: "When I have a problem, my feelings tend to get in the way of me solving it"
+# Reverse score negatively worded items: loc4 and cope3
 locus <- locus |>
   mutate(
     loc4 = 6 - loc4,
     cope3 = 6 - cope3
   )
-# ── 2. CFA: Locus of Control ───────────────────────────────────────────────────
-# Initial model
+# locus of control initial model
 loc_mod <- "
 loc =~ loc1 + loc2 + loc3 + loc4 + loc5 + loc6"
 
@@ -195,8 +191,7 @@ loc_mod_est <- cfa(loc_mod, missing = "ML", data = locus)
 fitmeasures(loc_mod_est)[c("rmsea", "srmr", "tli", "cfi")]
 modindices(loc_mod_est, sort = TRUE, maximum.number = 5)
 
-# Modified model - adding loc3 ~~ loc4 based on MI (61.457)
-# Justified: both items relate to future outcomes being controllable
+# LOC modified model
 loc_mod2 <- "
 loc =~ loc1 + loc2 + loc3 + loc4 + loc5 + loc6
 loc3 ~~ loc4"
@@ -204,10 +199,8 @@ loc_mod_est2 <- cfa(loc_mod2, missing = "ML", data = locus)
 fitmeasures(loc_mod_est2)[c("rmsea", "srmr", "tli", "cfi")]
 modindices(loc_mod_est2, sort = TRUE, maximum.number = 5)
 parameterestimates(loc_mod_est2, standardized = TRUE)
-# Final fit: RMSEA = 0.000, SRMR = 0.010, TLI = 1.005, CFI = 1.000 
 
-# ── 3. CFA: Coping Strategies ──────────────────────────────────────────────────
-# Initial model
+# coping strategies initial model
 cope_mod <- "
 cope =~ cope1 + cope2 + cope3 + cope4 + cope5 + cope6 + cope7 + cope8"
 
@@ -215,8 +208,7 @@ cope_mod_est <- cfa(cope_mod, missing = "ML", data = locus)
 fitmeasures(cope_mod_est)[c("rmsea", "srmr", "tli", "cfi")]
 modindices(cope_mod_est, sort = TRUE, maximum.number = 5)
 
-# Modified model - adding cope4 ~~ cope7 based on MI (296.535)
-# Justified: both items describe structured step-by-step problem solving
+# CS modified model
 cope_mod2 <- "
 cope =~ cope1 + cope2 + cope3 + cope4 + cope5 + cope6 + cope7 + cope8
 cope4 ~~ cope7"
@@ -225,9 +217,8 @@ cope_mod_est2 <- cfa(cope_mod2, missing = "ML", data = locus)
 fitmeasures(cope_mod_est2)[c("rmsea", "srmr", "tli", "cfi")]
 modindices(cope_mod_est2, sort = TRUE, maximum.number = 5)
 parameterestimates(cope_mod_est2, standardized = TRUE)
-# Final fit: RMSEA = 0.035, SRMR = 0.019, TLI = 0.990, CFI = 0.993
-# ── 4. CFA: Anxiety and Depression ────────────────────────────────────────────
-# Initial model - two correlated factors as specified in the brief
+
+# anxiety and depression initial model
 anx_dep_mod <- "
 anx =~ anx1 + anx2 + anx3 + anx4
 dep =~ dep1 + dep2 + dep3 + dep4
@@ -237,8 +228,7 @@ anx_dep_est <- cfa(anx_dep_mod, missing = "ML", data = locus)
 fitmeasures(anx_dep_est)[c("rmsea", "srmr", "tli", "cfi")]
 modindices(anx_dep_est, sort = TRUE, maximum.number = 5)
 
-# Modified model - adding dep1 ~~ dep2 based on MI (16.963)
-# Justified: both items describe emotional/somatic expressions of sadness
+# AND modified model
 anx_dep_mod2 <- "
 anx =~ anx1 + anx2 + anx3 + anx4
 dep =~ dep1 + dep2 + dep3 + dep4
@@ -249,9 +239,8 @@ anx_dep_est2 <- cfa(anx_dep_mod2, missing = "ML", data = locus)
 fitmeasures(anx_dep_est2)[c("rmsea", "srmr", "tli", "cfi")]
 modindices(anx_dep_est2, sort = TRUE, maximum.number = 5)
 parameterestimates(anx_dep_est2, standardized = TRUE)
-# Final fit: RMSEA = 0.029, SRMR = 0.019, TLI = 0.991, CFI = 0.994 
 
-# ── 5. Full SEM with Mediation ─────────────────────────────────────────────────
+# full SEM with Mediation 
 full_mod <- "
   # Measurement models (with modifications from CFAs)
   loc =~ loc1 + loc2 + loc3 + loc4 + loc5 + loc6
@@ -287,7 +276,7 @@ summary(full_mod_sem, ci = TRUE)
 fitmeasures(full_mod_sem)[c("rmsea", "srmr", "tli", "cfi")]
 parameterestimates(full_mod_sem, boot.ci.type = "perc", ci = TRUE)
 
-# ── 6. Path Diagram ────────────────────────────────────────────────────────────
+# path diagram 
 semPaths(full_mod_sem,
          what = "std",
          layout = "tree2",
