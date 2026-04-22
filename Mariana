@@ -54,7 +54,7 @@ final_trials_per_person <- gardenpath |>
          "Number of Participants" = n)
 print(final_trials_per_person)
 
-# Descriptives ────────────────────────────────────────────────────────────
+# descriptives 
 desc <- gardenpath |>
   group_by(gtype, months) |>
   summarise(
@@ -66,8 +66,7 @@ desc <- gardenpath |>
   )
 print(desc, n = 21)
 
-# Visualisation ───────────────────────────────────────────────────────────
-# Plot 1: Individual trajectories
+# visualizing the data: plot 1
 ggplot(gardenpath, aes(x = months, y = RSES, group = participant, colour = gtype)) +
   geom_line(alpha = 0.15) +
   stat_summary(aes(group = gtype), fun = mean, geom = "line",
@@ -83,12 +82,11 @@ ggplot(gardenpath, aes(x = months, y = RSES, group = participant, colour = gtype
     subtitle = "Dashed line = group mean trajectory",
     x = "Months Since Baseline",
     y = "RSES Score",
-    colour = "Session Type"
+    color = "Session Type"
   ) +
-  theme_minimal() +
-  theme(legend.position = "none")  # legend redundant with facet labels
+  theme_classic()
 
-# Plot 2: Mean trajectories with SE (cleaner than ribbons)
+# plot 2
 ggplot(gardenpath, aes(x = months, y = RSES, colour = gtype)) +
   scale_colour_manual(values = c("Paired" = "darkred", 
                                  "Community" = "navyblue", 
@@ -102,9 +100,9 @@ ggplot(gardenpath, aes(x = months, y = RSES, colour = gtype)) +
     y = "Mean RSES Score",
     colour = "Session Type"
   ) +
-  theme_minimal()
+  theme_classic()
 
-# Plot 3: By allotment (from your classmate - useful to check clustering)
+# plot 3
 ggplot(gardenpath, aes(x = months, y = RSES, colour = gtype)) +
   scale_colour_manual(values = c("Paired" = "darkred", 
                                  "Community" = "navyblue", 
@@ -119,9 +117,9 @@ ggplot(gardenpath, aes(x = months, y = RSES, colour = gtype)) +
     y = "Mean RSES Score",
     colour = "Session Type"
   ) +
-  theme_minimal()
+  theme_classic()
 
-# Model Building ──────────────────────────────────────────────────────────
+# models
 m1 <- lmer(RSES ~ months + (1 + months | participant) + (1 | allotment),
            data = gardenpath, REML = FALSE,
            control = lmerControl(optimizer = "bobyqa"))
@@ -138,11 +136,10 @@ m4 <- lmer(RSES ~ months * gtype + age + prevexp + (1 + months | participant) + 
            data = gardenpath, REML = FALSE,
            control = lmerControl(optimizer = "bobyqa"))
 
-# Model comparison
+# comparing models
 anova(m1, m2, m3, m4)
 
-
-# Final Model ─────────────────────────────────────────────────────────────
+# finalized model
 m_final <- lmer(RSES ~ months * gtype + age + prevexp +
                   (1 + months | participant) + (1 | allotment),
                 data = gardenpath, REML = TRUE,
@@ -152,18 +149,13 @@ summary(m_final)
 confint(m_final, method = "Wald")
 
 
-# Post-hoc ────────────────────────────────────────────────────────────────
-# Compare rates of change (slopes) across gardening types
+# post-hoc comparisons
 emtrends(m_final, pairwise ~ gtype, var = "months")
 
-# Pairwise differences at key timepoints
 pairs(emmeans(m_final, ~ gtype | months, at = list(months = c(0, 6, 12, 18))))
 
-# Assumptions ─────────────────────────────────────────────────────────────
-# Residuals vs fitted
+# assumption checks
 plot(m_final)
-
-# Scale-location (homoscedasticity)
 plot(m_final, form = sqrt(abs(resid(.))) ~ fitted(.), type = c("p", "smooth"))
 
 # check normality of residuals
